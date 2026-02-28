@@ -32,6 +32,19 @@ def read_file(file_path):
     return agents
 
 
+def write_to_file(file_path,response,parms):
+
+    # Parms is a Dic 
+    # {"url", "method", "agent", "content_type","header", "ip"}
+
+    with open(file_path, 'a') as file:
+        file.write(f"[*] Trying url {parms['modified_url']}, Method {parms['method']} with User-Agent:{parms['agent']} with Content-Type : {parms['content_type']} with header {parms['forwarded_header']} with ip value {parms['ip']}\n")
+        if not response.text:
+            file.write(f"empty response")
+        else:
+            file.write(f"Response : {response.text}\n")
+        file.write("\n************************************************************\n")
+
 
 # I cannot make it optional since bypassing depends on passing those parameters
 if len(sys.argv) < 4:
@@ -44,7 +57,6 @@ agents = read_file(sys.argv[2])
 forwarded_headers = read_file(sys.argv[3])
 ips = read_file(sys.argv[4])
 
-
 # I want to get the last endpoint to add the path norm char before it, given the url from the user
 # For example if the user is providing: http://example.com/api/v1/get-passcode
 # I want to get that get-passcode part to add the path norm chars before it.
@@ -52,75 +64,76 @@ ips = read_file(sys.argv[4])
 splited_url = sys.argv[1].split('/')
 last_segment= splited_url[-1]
 
-## Shift the model from looping over all cases to "generating testcases and then executing them"
-## Test case: 
-    ## Method = GET
-    ## User-Agent = X
-    ## Content-Type = Y
-    ## Forwarded-Header = Z
-    ## IP = 1.2.3.4
-    ## Auth = present/ absent
+# Define the structure of the test case.
+def test_case(method, url, headers, auth=None):
+    return {
+        "method": method,
+        "url": url,
+        "headers": headers,
+        "auth": auth
+    }
 
-## Design optimization:
-  ## Questions to ask myself:
-    ## 1. Which dimensions should be paired (e.g., forwarder headers and IPs)
-    ## 2. Do I need to test every combination?
-    ## 3. What varies, what stays constant? (e.g., URL usually constant)
-    ## 4. What should be a single test case? 
-    ## 5. What fields does it have or should have? What are optional fields? 
-
-  ## Design considerations:
-    ## 1. Execution logic remain clean and flat; One loop for generating test cases, one for executing them. 
-    ## 2. Reduce combinations without loosing coverage.
-
-  ## Test case design:
-    ## A test case is a one concrete HTTP request .
-    ## <Method, Endpoint, Authentication/NoAuth, Extra-headers (User-Agent, Content-Type, Forwarded-Header + IP)>
-
-for char in PATH_NORM:
-
-    if (char == ''):
-        modified_url = sys.argv[1]
-    else: 
-        modified_url = '/'.join(splited_url[:-1] + [char] + [last_segment])
-    
-    print(f"[*] Trying URL: {modified_url}")
-
-    for agent in agents:
-        
-        agent = agent.strip()
-        for content_type in CONTENT_TYPES:
-            
-            content_type = content_type.strip()
-
-            for forwarded_header in forwarded_headers:
-
-                forwarded_header = forwarded_header.strip()
-                for ip in ips:
-
-                    ip = ip.strip()
-                    for i in range(len(HTTP_METHODS)):
-                        
-                        method = HTTP_METHODS[i]
-                        
-                        if sys.argv[5]:
-                            authorization_token = sys.argv[5]
-                            response = requests.request(method, modified_url, headers =  {"User-Agent": agent, "Content-Type" :content_type, forwarded_header: ip, "Authorization": authorization_token}, proxies=PROXIES, verify=False)
-                        else:
-                            response = requests.request(method, modified_url, headers =  {"User-Agent": agent, "Content-Type" :content_type, forwarded_header: ip}, proxies=PROXIES, verify=False)
-
-                        print(f"[*] appedning results to the file....")
-                        
-                        # Update result path with your path
-                        with open("/Users/kholoudahmed/Downloads/Clones/Automation/web/bypass_403/bypass_403_results.txt", 'a') as result_file:
-                            result_file.write(f"[*] Trying url {modified_url}, Method {method} with User-Agent:{agent} with Content-Type : {content_type} with header {forwarded_header} with ip value {ip})\n")
-                            result_file.write("\n")
-                            result_file.write(f"Response : {response.text}\n")
-                            result_file.write("\n************************************************************\n")
-    
-    print(f"[*] Finished appending results to the file. ")
 
 # Test logic happens here
-def generate_test_case(method, url, headers, auth=None):
-    return 0 
+def generate_test_case():
+    for char in PATH_NORM:
+        if (char == ''):
+            modified_url = sys.argv[1]
+        else:
+            modified_url = '/'.join(splited_url[:-1] + [char] + [last_segment])
+        print(f"[*] Trying URL: {modified_url}")
+        for agent in agents:
+            agent = agent.strip()
+            for content_type in CONTENT_TYPES:
+                content_type = content_type.strip()
+                for forwarded_header in forwarded_headers:
+                    forwarded_header = forwarded_header.strip()
+                    for ip in ips:
+                        ip = ip.strip()
+                        for method in range(len(HTTP_METHODS)):
+                            method = HTTP_METHODS[method]
+                            if sys.argv[5].strip():
 
+                                authentication_token = sys.argv[5]
+
+                                yield test_case(method, modified_url, headers={
+                                    "User-Agent": agent,
+                                    "Content-Type": content_type,
+                                    "Forwarded_header": forwarded_header,
+                                    "ip" : ip,
+                                    "Authorization": authentication_token
+                                })
+                            else:
+                                yield test_case(method, modified_url, headers={
+                                    "User-Agent": agent,
+                                    "Content-Type": content_type,
+                                    "Forwarded_header": forwarded_header,
+                                    "ip" : ip
+                                })
+
+    print(f"[*] Finished appending results to the file. ")
+
+def send_request():
+
+    for i in generate_test_case():
+        #print(i)
+        response = requests.request(i["method"],i["url"], headers={
+            "Content-Type": i["headers"]["Content-Type"],
+            i["headers"]["Forwarded_header"]:i["headers"]["ip"],
+            "User-Agent": i["headers"]["User-Agent"],
+            "Authorization":i["headers"]["Authorization"]
+        }, proxies=PROXIES, verify=False)
+
+    
+        # Adjustable : set it to your default result directory
+        write_to_file("/Users/kholoudahmed/Downloads/Clones/Automation/Web/Bypass403/Results/bypass403-results.txt", response, {
+            "modified_url":i["url"],
+            "method": i["method"],
+            "agent":i["headers"]["User-Agent"],
+            "content_type": i["headers"]["Content-Type"],
+            "forwarded_header":i["headers"]["Forwarded_header"],
+            "ip":i["headers"]["ip"]
+        })
+
+
+send_request()
