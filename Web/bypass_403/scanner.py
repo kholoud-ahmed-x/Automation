@@ -22,7 +22,7 @@ The goal is to automate testing all approaches to bypass it including but not li
 '''
 import requests
 import sys
-
+from payloads import *
 
 ## Helper Methods
 
@@ -32,25 +32,6 @@ def read_file(file_path):
     return agents
 
 
-HTTP_METHODS = ['GET', 'POST', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH']
-
-# Since we are concatinating the url with '/', i removed the trailing and leading slashes from the list as they are gonna be appended below
-PATH_NORM = ['','.', '../../', '..', '%2e', '%2e%2e', '%00', '%20', '..;', '.;', '%2e%2e%2f', '%2e%2e', '/;/']
-
-CONTENT_TYPES = [
-    'application/json',
-    'application/xml',
-    'text/xml',
-    'application/x-www-form-urlencoded',
-    'multipart/form-data',
-    'text/html',
-    'text/plain'
-]
-
-PROXIES = {
-    "http":"127.0.0.1:8080",
-    "https":"127.0.0.1:8080"
-}
 
 # I cannot make it optional since bypassing depends on passing those parameters
 if len(sys.argv) < 4:
@@ -130,7 +111,8 @@ for char in PATH_NORM:
 
                         print(f"[*] appedning results to the file....")
                         
-                        with open("../Results/bypass403-results.txt", 'w') as result_file:
+                        # Update result path with your path
+                        with open("/Users/kholoudahmed/Downloads/Clones/Automation/web/bypass_403/bypass_403_results.txt", 'w') as result_file:
                             result_file.write(f"[*] Trying url {modified_url}, Method {method} with User-Agent:{agent} with Content-Type : {content_type} with header {forwarded_header} with ip value {ip})\n")
                             result_file.write("\n")
                             result_file.write(f"Response : {response.text}\n")
