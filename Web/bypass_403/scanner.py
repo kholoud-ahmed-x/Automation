@@ -112,7 +112,7 @@ for char in PATH_NORM:
                         print(f"[*] appedning results to the file....")
                         
                         # Update result path with your path
-                        with open("/Users/kholoudahmed/Downloads/Clones/Automation/web/bypass_403/bypass_403_results.txt", 'w') as result_file:
+                        with open("/Users/kholoudahmed/Downloads/Clones/Automation/web/bypass_403/bypass_403_results.txt", 'a') as result_file:
                             result_file.write(f"[*] Trying url {modified_url}, Method {method} with User-Agent:{agent} with Content-Type : {content_type} with header {forwarded_header} with ip value {ip})\n")
                             result_file.write("\n")
                             result_file.write(f"Response : {response.text}\n")
