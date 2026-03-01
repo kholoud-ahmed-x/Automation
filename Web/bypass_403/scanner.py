@@ -78,7 +78,6 @@ def test_case(method, url, headers, auth=None):
 # Test logic happens here
 def generate_test_case():
 
-    # Optimization 1: Use Cartesian product to generate the test cases instead of nested loops.
     for char in PATH_NORM:
         if (char == ''):
             modified_url = sys.argv[1]
@@ -87,29 +86,20 @@ def generate_test_case():
         print(f"[*] Trying URL: {modified_url}")
 
         for combination in product(agents, CONTENT_TYPES, forwarded_headers, ips, HTTP_METHODS):
+           
             agent, content_type, forwarded_header, ip, method = combination
-            agent = agent.strip()
-            content_type = content_type.strip()
-            forwarded_header = forwarded_header.strip()
-            ip = ip.strip()
-            method = method.strip()
 
-            if sys.argv[5].strip():
-                authentication_token = sys.argv[5]
-                yield test_case(method, modified_url, headers={
-                    "User-Agent": agent,
-                    "Content-Type": content_type,
-                    "Forwarded_header": forwarded_header,
-                    "ip" : ip,
-                    "Authorization": authentication_token
-                })
-            else:
-                yield test_case(method, modified_url, headers={
-                    "User-Agent": agent,
-                    "Content-Type": content_type,
-                    "Forwarded_header": forwarded_header,
-                    "ip" : ip
-                })
+            headers = {
+                "User-Agent": agent.strip(),
+                "Content-Type": content_type.strip(),
+                "Forwarded_header": forwarded_header.strip(),
+                "ip": ip.strip()
+            }
+
+            if sys.argv[4]:
+                headers["Authorization"] = sys.argv[4].strip()
+            
+            yield test_case(method.strip(), modified_url, headers=headers)
 
 
 
