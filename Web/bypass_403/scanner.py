@@ -9,7 +9,7 @@ The goal is to automate testing all approaches to bypass it including but not li
 4. User Agents -- done
 5. Other headers such as Content-Type -- done 
 6. Append IP addresses -- next step
-7. Optimize code. -- next step
+7. Optimize code. -- partially done;
 8. ASN/Geo
 9. Refererer Headers
 10. Test on valid valid scenarios. -- next step.
@@ -23,6 +23,7 @@ The goal is to automate testing all approaches to bypass it including but not li
 import requests
 import sys
 from payloads import *
+from itertools import product
 
 ## Helper Methods
 
@@ -76,47 +77,48 @@ def test_case(method, url, headers, auth=None):
 
 # Test logic happens here
 def generate_test_case():
+
+    # Optimization 1: Use Cartesian product to generate the test cases instead of nested loops.
     for char in PATH_NORM:
         if (char == ''):
             modified_url = sys.argv[1]
         else:
             modified_url = '/'.join(splited_url[:-1] + [char] + [last_segment])
         print(f"[*] Trying URL: {modified_url}")
-        for agent in agents:
+
+        for combination in product(agents, CONTENT_TYPES, forwarded_headers, ips, HTTP_METHODS):
+            agent, content_type, forwarded_header, ip, method = combination
             agent = agent.strip()
-            for content_type in CONTENT_TYPES:
-                content_type = content_type.strip()
-                for forwarded_header in forwarded_headers:
-                    forwarded_header = forwarded_header.strip()
-                    for ip in ips:
-                        ip = ip.strip()
-                        for method in range(len(HTTP_METHODS)):
-                            method = HTTP_METHODS[method]
-                            if sys.argv[5].strip():
+            content_type = content_type.strip()
+            forwarded_header = forwarded_header.strip()
+            ip = ip.strip()
+            method = method.strip()
 
-                                authentication_token = sys.argv[5]
+            if sys.argv[5].strip():
+                authentication_token = sys.argv[5]
+                yield test_case(method, modified_url, headers={
+                    "User-Agent": agent,
+                    "Content-Type": content_type,
+                    "Forwarded_header": forwarded_header,
+                    "ip" : ip,
+                    "Authorization": authentication_token
+                })
+            else:
+                yield test_case(method, modified_url, headers={
+                    "User-Agent": agent,
+                    "Content-Type": content_type,
+                    "Forwarded_header": forwarded_header,
+                    "ip" : ip
+                })
 
-                                yield test_case(method, modified_url, headers={
-                                    "User-Agent": agent,
-                                    "Content-Type": content_type,
-                                    "Forwarded_header": forwarded_header,
-                                    "ip" : ip,
-                                    "Authorization": authentication_token
-                                })
-                            else:
-                                yield test_case(method, modified_url, headers={
-                                    "User-Agent": agent,
-                                    "Content-Type": content_type,
-                                    "Forwarded_header": forwarded_header,
-                                    "ip" : ip
-                                })
+
 
     print(f"[*] Finished appending results to the file. ")
 
 def send_request():
 
     for i in generate_test_case():
-        #print(i)
+        
         response = requests.request(i["method"],i["url"], headers={
             "Content-Type": i["headers"]["Content-Type"],
             i["headers"]["Forwarded_header"]:i["headers"]["ip"],
@@ -125,8 +127,8 @@ def send_request():
         }, proxies=PROXIES, verify=False)
 
     
-        # Adjustable : set it to your default result directory
-        write_to_file("/Users/kholoudahmed/Downloads/Clones/Automation/Web/Bypass403/Results/bypass403-results.txt", response, {
+        # Update path
+        write_to_file("/Users/kholoudahmed/Downloads/Clones/Automation/web/bypass_403/bypass_403_results.txt", response, {
             "modified_url":i["url"],
             "method": i["method"],
             "agent":i["headers"]["User-Agent"],
