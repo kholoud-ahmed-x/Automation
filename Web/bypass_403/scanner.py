@@ -25,7 +25,6 @@ import sys
 from payloads import *
 from itertools import product
 
-## Helper Methods
 
 def read_file(file_path):
     with open(file_path, 'r') as file:
@@ -53,20 +52,16 @@ if len(sys.argv) < 4:
     print(f"[!] Usage: {sys.argv[0]} <full_target_url> <agent_wordlist_file> <headers_wordlists> <ip_header_wordlist> <auth token>[optional]")
     sys.exit(1)
 
-# Read wordlists
 agents = read_file(sys.argv[2])
 forwarded_headers = read_file(sys.argv[3])
 ips = read_file(sys.argv[4])
 
-# I want to get the last endpoint to add the path norm char before it, given the url from the user
-# For example if the user is providing: http://example.com/api/v1/get-passcode
-# I want to get that get-passcode part to add the path norm chars before it.
-# We can split via / and get the last part. 
+
 splited_url = sys.argv[1].split('/')
 last_segment= splited_url[-1]
 
-# Define the structure of the test case.
 def test_case(method, url, headers, auth=None):
+    
     return {
         "method": method,
         "url": url,
@@ -75,14 +70,15 @@ def test_case(method, url, headers, auth=None):
     }
 
 
-# Test logic happens here
 def generate_test_case():
 
     for char in PATH_NORM:
+        
         if (char == ''):
             modified_url = sys.argv[1]
         else:
             modified_url = '/'.join(splited_url[:-1] + [char] + [last_segment])
+        
         print(f"[*] Trying URL: {modified_url}")
 
         for combination in product(agents, CONTENT_TYPES, forwarded_headers, ips, HTTP_METHODS):
@@ -102,8 +98,8 @@ def generate_test_case():
             yield test_case(method.strip(), modified_url, headers=headers)
 
 
-
     print(f"[*] Finished appending results to the file. ")
+
 
 def send_request():
 
