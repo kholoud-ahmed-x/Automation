@@ -1,4 +1,3 @@
-# This file contains the logic of bypassing 403 
 '''
 Docstring for bypass403
 This script is for bypassin 403 forbidden errors on web servers.
@@ -95,7 +94,7 @@ def send_request():
 
     
         # Update path
-        write_to_file("/Users/kholoudahmed/Downloads/Clones/Automation/web/bypass_403/bypass_403_results.txt", response, {
+        write_to_file("/Users/kholoudahmed/Downloads/Clones/Automation/web/scan_results/bypass_403_results.txt", response, {
             "modified_url":i["url"],
             "method": i["method"],
             "agent":i["headers"]["User-Agent"],
